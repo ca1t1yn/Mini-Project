@@ -52,7 +52,7 @@ Translates binary data into real temperature values
 | VCC | ESP32 5V (VIN) |
 | GND | Common ground |
 
-**Turbidity sensor:**
+**Turbidity Sensor:**
 
 The turbidity sensor can output close to 5V, which exceeds the ADS1115's 3.3V limit at 3.3V VDD.Therefore we use a voltage divider:
 
@@ -65,6 +65,21 @@ Sensor output --[220 ohm]-- (tap to ADS1115 A1) --[330 ohm]-- GND
 | (tap point) | 330 ohm resistor -> GND |
 | VCC | ESP32 5V (VIN) |
 | GND | Common ground |
+```
+
+**Temperature sensor:**
+The DS18B20 temperature sensor with the ESP32 uses an open-drain output configuration, meaning that the sensor can pull the data wire `Low` to send a 0, but not `High` to send a 1. The ESP32 is thus unable to detect a solid 1 bit. To solve this we use a 4.7K ohm pull-up resistor, that pulls the data voltage up to 3.3V
+
+```
+| DS18B20 Wire | Connects to| 
+|---|---|
+| VCC (Red) | 3.3V |
+| GND (Black) | GND |
+| Data (Yellow ) | GPIO 14 |
+
+*Note: Connect a 4.7kΩ pull-up resistor between GPIO14 (Data) and 3.3V.*
+```
+
 
 ## Wiring: ESP32 #2 (receiver board)
 
@@ -82,4 +97,4 @@ No sensors attached. This board only needs:
  
 
 ## Notes
-- Temperature and pH sensors are not currently wired in. The dashboard backend can be updated to use placeholder values.
+- pH sensors are not currently wired in. The dashboard backend can be updated to use placeholder values.
