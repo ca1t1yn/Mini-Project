@@ -5,6 +5,7 @@
 typedef struct SensorData {
   float tds;
   float turbidity;
+  float temperature;
 } SensorData;
 
 SensorData receivedData;
@@ -16,6 +17,8 @@ void onDataRecv(const esp_now_recv_info_t *recv_info, const uint8_t *incomingDat
   Serial.print(receivedData.tds,3);
   Serial.print(",Turbidity:");
   Serial.println(receivedData.turbidity,3);
+  Serial.print(",Temperature:");
+  Serial.println(receivedData.temperature,2);
 }
 
 void setup() {

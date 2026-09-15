@@ -28,7 +28,10 @@ Install via **Sketch → Include Library → Manage Libraries**:
 
 - `Adafruit ADS1X15` (and its dependency, `Adafruit BusIO`)
 The `esp_now.h` and `WiFi.h` libraries are included with the ESP32 board package (Espressif's `esp32` core)
-
+- `OneWire`
+Gives access to 1-wire devices made by Maxim/Dallas such as temperature sensors
+- `DallasTemperature`
+Translates binary data into real temperature values
 ## Wiring: ESP32 #1 (sensor board)
 
 **ADS1115 to ESP32 #1:**
@@ -76,9 +79,7 @@ No sensors attached. This board only needs:
 3. Write `espsender.ino` to ESP32 #1.
 4. Write `espreceiver.ino` to ESP32 #2.
 5. Once both boards are powered, ESP32 #2's Serial Monitor (115200 baud) should show incoming readings, e.g.:
-   ```
-   TDS:245.123,Turbidity:1.234
-   ```
+ 
 
 ## Notes
 - Temperature and pH sensors are not currently wired in. The dashboard backend can be updated to use placeholder values.
