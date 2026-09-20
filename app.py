@@ -21,8 +21,8 @@ from pydantic import BaseModel, Field
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_DIR = os.path.join(BASE_DIR, "model")
 
-NH3_MODEL_PATH = os.path.join(MODEL_DIR, "nh3_random_forest_50trees.pkl")
-DO_MODEL_PATH = os.path.join(MODEL_DIR, "do_random_forest_75trees.pkl")
+NH3_MODEL_PATH = os.path.join(MODEL_DIR, "nh3_random_forest.pkl")
+DO_MODEL_PATH = os.path.join(MODEL_DIR, "do_random_forest.pkl")
 
 try:
     nh3_model = joblib.load(NH3_MODEL_PATH)
