@@ -1,24 +1,22 @@
-
 #include <esp_now.h>
 #include <WiFi.h>
 
 typedef struct SensorData {
-  float tds;
-  float turbidity;
-  float temperature;
+  float tds;          
+  float turbidity;    
+  float temperature;  
+  float ph;
 } SensorData;
 
 SensorData receivedData;
 
 void onDataRecv(const esp_now_recv_info_t *recv_info, const uint8_t *incomingData, int len) {
-  memcpy(&receivedData, incomingData, sizeof(receivedData));
+  if (len == sizeof(receivedData)) {
+    memcpy(&receivedData, incomingData, sizeof(receivedData));
 
-  Serial.print("TDS:");
-  Serial.print(receivedData.tds,3);
-  Serial.print(",Turbidity:");
-  Serial.println(receivedData.turbidity,3);
-  Serial.print(",Temperature:");
-  Serial.println(receivedData.temperature,2);
+    Serial.printf("Received -> Temp: %.2f °C | TDS: %.2f PPM | Turbidity: %.2f NTU | pH: %.2f \n",
+                  receivedData.temperature, receivedData.tds, receivedData.turbidity, receivedData.ph);
+  }
 }
 
 void setup() {
@@ -28,11 +26,12 @@ void setup() {
   WiFi.mode(WIFI_STA);
 
   if (esp_now_init() != ESP_OK) {
-    Serial.println("ESP-NOW failed");
+    Serial.println("ESP-NOW failed to initialize");
     return;
   }
+
   esp_now_register_recv_cb(onDataRecv);
-  Serial.println("The ESP-NOW receiver is ready");
+  Serial.println("ESP-NOW Receiver Ready");
 }
 
 void loop() {

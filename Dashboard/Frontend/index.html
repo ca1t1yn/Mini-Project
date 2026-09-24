@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chitrapuzha River — Water Quality Monitor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg: #eaf4f8;
+    --bg-deep: #dcebf2;
+    --surface: #ffffff;
+    --ink: #1e3d59;
+    --ink-soft: #3d6d99;
+    --line: #b7d3e0;
+    --teal: #6fa8b5;
+    --navy: #16324a;
+    --shadow: rgba(30, 61, 89, 0.08);
+  }
+  *{ box-sizing: border-box; }
+  body{
+    margin:0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .contour{ position:absolute; pointer-events:none; opacity:0.35; z-index:0; }
+  .wrap{ position:relative; max-width:1180px; margin:0 auto; padding:48px 32px 80px; }
+
+  header{ position:relative; z-index:1; margin-bottom:56px; }
+  .kicker{
+    font-size:13px; letter-spacing:0.02em; color: var(--ink-soft);
+    margin:0 0 10px;
+  }
+  h1{
+    font-family:'Fraunces', serif;
+    font-optical-sizing: auto;
+    font-weight:560;
+    font-size: clamp(30px, 4vw, 46px);
+    line-height:1.08;
+    margin:0 0 12px;
+    color: var(--navy);
+    max-width:720px;
+  }
+  .sub{ color: var(--ink-soft); font-size:15.5px; max-width:520px; line-height:1.55; margin:0; }
+  .status-row{
+    display:flex; align-items:center; gap:10px; margin-top:22px; font-size:13.5px; color:var(--ink-soft);
+  }
+  .dot{ width:8px; height:8px; border-radius:50%; background:#8fb996; flex-shrink:0; }
+  .dot.offline{ background:#c98a7a; }
+
+  section{ position:relative; z-index:1; }
+  .section-head{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:18px; flex-wrap:wrap; gap:10px; }
+  .section-head h2{
+    font-family:'Fraunces', serif; font-weight:540; font-size:22px; margin:0; color:var(--navy);
+  }
+
+  .cards{
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap:16px;
+    margin-bottom:60px;
+  }
+  .card{
+    background: var(--surface);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:20px 20px 18px;
+    box-shadow: 0 8px 24px var(--shadow);
+  }
+  .card .label{ font-size:12.5px; color:var(--ink-soft); margin-bottom:10px; }
+  .card .value{
+    font-family:'Fraunces', serif; font-weight:560; font-size:30px; color:var(--navy); line-height:1;
+  }
+  .card .unit{ font-family:'IBM Plex Sans', sans-serif; font-size:14px; font-weight:500; color:var(--ink-soft); margin-left:4px; }
+  .card .note{ font-size:11.5px; color:#8fa9be; margin-top:8px; }
+  .card{ cursor:pointer; transition: box-shadow 0.15s ease, transform 0.15s ease; }
+  .card:hover{ box-shadow: 0 10px 28px rgba(30,61,89,0.14); transform: translateY(-2px); }
+
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(22,50,74,0.45);
+    display:flex; align-items:center; justify-content:center;
+    padding:24px; z-index:10;
+  }
+  .modal-overlay.hidden{ display:none; }
+  .modal-content{
+    background: var(--surface);
+    border-radius:16px;
+    max-width:640px; width:100%;
+    max-height:88vh; overflow-y:auto;
+    padding:32px 32px 28px;
+    box-shadow: 0 24px 60px rgba(22,50,74,0.25);
+  }
+  .modal-head{ display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:6px; }
+  .modal-head h2{
+    font-family:'Fraunces', serif; font-weight:560; font-size:26px; margin:0; color:var(--navy);
+  }
+  .modal-close{
+    background:none; border:none; font-size:22px; line-height:1; color:var(--ink-soft);
+    cursor:pointer; padding:4px 8px; margin:-4px -8px 0 0;
+  }
+  .modal-desc{ color:var(--ink-soft); font-size:14.5px; line-height:1.6; margin:0 0 22px; max-width:520px; }
+  .modal-stats{ display:grid; grid-template-columns: repeat(3, 1fr); gap:12px; margin-bottom:24px; }
+  .modal-stats .stat{ background: var(--bg); border-radius:10px; padding:12px 14px; }
+  .modal-stats .stat .stat-label{ font-size:11.5px; color:var(--ink-soft); margin-bottom:4px; }
+  .modal-stats .stat .stat-value{ font-family:'Fraunces', serif; font-weight:560; font-size:19px; color:var(--navy); }
+  #chart-detail{ max-height:260px; }
+
+  .range-picker{ display:flex; gap:6px; }
+  .range-picker button{
+    font-family:'IBM Plex Sans', sans-serif; font-size:13px; color:var(--ink-soft);
+    background:var(--surface); border:1px solid var(--line); border-radius:8px;
+    padding:6px 14px; cursor:pointer;
+  }
+  .range-picker button.active{ background:var(--navy); color:#eaf4f8; border-color:var(--navy); }
+
+  .charts{
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap:20px;
+  }
+  .chart-card{
+    background: var(--surface);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:20px 22px 14px;
+    box-shadow: 0 8px 24px var(--shadow);
+  }
+  .chart-card h3{
+    font-family:'IBM Plex Sans', sans-serif; font-weight:600; font-size:14px; margin:0 0 12px; color:var(--ink);
+  }
+  .chart-card canvas{ max-height:180px; }
+
+  footer{
+    position:relative; z-index:1; margin-top:70px; padding-top:20px; border-top:1px solid var(--line);
+    font-size:12.5px; color:var(--ink-soft); display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;
+  }
+
+  @media (max-width:560px){
+    .wrap{ padding:32px 18px 60px; }
+    .status-row{ flex-wrap:wrap; }
+  }
+</style>
+</head>
+<body>
+
+<svg class="contour" style="top:-40px; left:-60px; width:340px;" viewBox="0 0 300 300" fill="none">
+  <path d="M20 150 C 60 80, 140 60, 180 110 C 220 160, 180 220, 120 210 C 70 202, 50 170, 20 150 Z" stroke="#9dc3d4" stroke-width="1.2"/>
+  <path d="M45 150 C 75 100, 135 85, 165 120 C 195 155, 165 195, 120 188 C 85 182, 65 165, 45 150 Z" stroke="#9dc3d4" stroke-width="1.2"/>
+  <path d="M68 150 C 90 118, 130 108, 150 132 C 170 156, 150 180, 120 176 C 96 172, 82 162, 68 150 Z" stroke="#9dc3d4" stroke-width="1.2"/>
+</svg>
+
+<svg class="contour" style="top:-20px; right:-80px; width:380px;" viewBox="0 0 320 260" fill="none">
+  <path d="M10 40 C 90 10, 160 30, 190 70 C 220 110, 200 160, 150 165 C 100 170, 70 140, 60 110 C 50 80, 30 60, 10 40 Z" stroke="#9dc3d4" stroke-width="1.2"/>
+  <path d="M40 45 C 100 22, 150 38, 172 68 C 194 98, 180 135, 145 140 C 112 144, 92 122, 85 100 C 78 78, 62 60, 40 45 Z" stroke="#9dc3d4" stroke-width="1.2"/>
+  <path d="M63 55 C 108 38, 140 50, 155 72 C 170 94, 160 118, 135 121 C 112 124, 100 108, 95 92 C 90 76, 80 65, 63 55 Z" stroke="#9dc3d4" stroke-width="1.2"/>
+</svg>
+
+<div class="wrap">
+
+  <header>
+    <p class="kicker">Chitrapuzha River, Kakkanad</p>
+    <h1>Water quality monitor</h1>
+    <p class="sub">Live readings from the riverbank sensor node, with ML-forecasted ammoniacal nitrogen and dissolved oxygen.</p>
+    <div class="status-row">
+      <span class="dot" id="status-dot"></span>
+      <span id="status-text">Connecting to sensor node…</span>
+    </div>
+  </header>
+
+  <section>
+    <div class="section-head"><h2>Current readings</h2></div>
+    <div class="cards" id="live-cards">
+      <div class="card" data-key="tds"><div class="label">TDS</div><div class="value">—<span class="unit">ppm</span></div></div>
+      <div class="card" data-key="turbidity"><div class="label">Turbidity</div><div class="value">—<span class="unit">V</span></div><div class="note">raw voltage, uncalibrated</div></div>
+      <div class="card" data-key="temperature"><div class="label">Temperature</div><div class="value">—<span class="unit">°C</span></div></div>
+      <div class="card" data-key="ph"><div class="label">pH</div><div class="value">—</div></div>
+      <div class="card" data-key="nh3"><div class="label">Predicted NH₃-N</div><div class="value">—<span class="unit">mg/L</span></div></div>
+      <div class="card" data-key="do"><div class="label">Predicted DO</div><div class="value">—<span class="unit">%</span></div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>Trends</h2>
+      <div class="range-picker">
+        <button data-hours="6">6h</button>
+        <button data-hours="24" class="active">24h</button>
+        <button data-hours="168">7d</button>
+      </div>
+    </div>
+    <div class="charts">
+      <div class="chart-card"><h3>TDS (ppm)</h3><canvas id="chart-tds"></canvas></div>
+      <div class="chart-card"><h3>Turbidity (V)</h3><canvas id="chart-turbidity"></canvas></div>
+      <div class="chart-card"><h3>Temperature (°C)</h3><canvas id="chart-temperature"></canvas></div>
+      <div class="chart-card"><h3>pH</h3><canvas id="chart-ph"></canvas></div>
+      <div class="chart-card"><h3>Predicted NH₃-N (mg/L)</h3><canvas id="chart-nh3"></canvas></div>
+      <div class="chart-card"><h3>Predicted DO (%)</h3><canvas id="chart-do"></canvas></div>
+    </div>
+  </section>
+
+  <div class="modal-overlay hidden" id="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-head">
+        <h2 id="modal-title">—</h2>
+        <button class="modal-close" id="modal-close" aria-label="Close">&times;</button>
+      </div>
+      <p class="modal-desc" id="modal-desc">—</p>
+      <div class="modal-stats">
+        <div class="stat"><div class="stat-label">Minimum</div><div class="stat-value" id="stat-min">—</div></div>
+        <div class="stat"><div class="stat-label">Average</div><div class="stat-value" id="stat-avg">—</div></div>
+        <div class="stat"><div class="stat-label">Maximum</div><div class="stat-value" id="stat-max">—</div></div>
+      </div>
+      <canvas id="chart-detail"></canvas>
+    </div>
+  </div>
+
+  <footer>
+    <span>Intelligent Sensor-Driven Modelling of Climate-Induced River Water Quality Impacts — RSET Campus</span>
+    <span id="last-updated">—</span>
+  </footer>
+
+</div>
+
+<script>
+const LIVE_POLL_MS = 4000;
+const HISTORY_POLL_MS = 30000;
+let currentHours = 24;
+
+const cardOrder = ['tds', 'turbidity', 'temperature', 'ph', 'nh3', 'do'];
+
+const chartMeta = {
+  tds:         { canvas: 'chart-tds',         color: '#1e3d59' },
+  turbidity:   { canvas: 'chart-turbidity',   color: '#3d6d99' },
+  temperature: { canvas: 'chart-temperature', color: '#6fa8b5' },
+  ph:          { canvas: 'chart-ph',          color: '#7fb2c5' },
+  nh3:         { canvas: 'chart-nh3',         color: '#4c7fa3' },
+  do:          { canvas: 'chart-do',          color: '#2a5674' },
+};
+const charts = {};
+let detailChart = null;
+let lastHistoryRows = [];
+
+const paramInfo = {
+  tds:         { title: 'TDS', unit: 'ppm', decimals: 2,
+                 desc: 'Total dissolved solids: concentration of dissolved minerals and salts in the water.' },
+  turbidity:   { title: 'Turbidity', unit: 'V', decimals: 3,
+                 desc: 'Raw sensor voltage from the optical turbidity probe. Higher voltage means clearer water.' },
+  temperature: { title: 'Temperature', unit: '\u00b0C', decimals: 2,
+                 desc: 'Water temperature at the sensor node. Strongly influences dissolved oxygen \u2014 colder water holds more oxygen.' },
+  ph:          { title: 'pH', unit: '', decimals: 1,
+                 desc: 'Acidity/alkalinity of the water. The Chitrapuzha\u2019s typical range is 6.2\u20138.5.' },
+  nh3:         { title: 'Predicted NH\u2083-N', unit: 'mg/L', decimals: 2,
+                 desc: 'Ammoniacal nitrogen, forecasted by the RandomForest model \u2014 driven mainly by turbidity.' },
+  do:          { title: 'Predicted DO', unit: '%', decimals: 2,
+                 desc: 'Dissolved oxygen saturation, forecasted by the RandomForest model \u2014 driven mainly by temperature and pH.' },
+};
+
+function initCharts(){
+  Object.entries(chartMeta).forEach(([key, meta]) => {
+    const ctx = document.getElementById(meta.canvas).getContext('2d');
+    charts[key] = new Chart(ctx, {
+      type: 'line',
+      data: { labels: [], datasets: [{
+        data: [],
+        borderColor: meta.color,
+        backgroundColor: meta.color + '22',
+        borderWidth: 2,
+        pointRadius: 0,
+        tension: 0.3,
+        fill: true,
+      }]},
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { display: false },
+          y: { ticks: { color: '#3d6d99', font: { size: 11 } }, grid: { color: '#dcebf2' } }
+        }
+      }
+    });
+  });
+
+  const detailCtx = document.getElementById('chart-detail').getContext('2d');
+  detailChart = new Chart(detailCtx, {
+    type: 'line',
+    data: { labels: [], datasets: [{
+      data: [],
+      borderColor: '#16324a',
+      backgroundColor: '#16324a22',
+      borderWidth: 2,
+      pointRadius: 0,
+      tension: 0.3,
+      fill: true,
+    }]},
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#3d6d99', font: { size: 10 }, maxTicksLimit: 6 }, grid: { display: false } },
+        y: { ticks: { color: '#3d6d99', font: { size: 11 } }, grid: { color: '#dcebf2' } }
+      }
+    }
+  });
+}
+
+function fmt(value, decimals = 2){
+  if (value === null || value === undefined || Number.isNaN(value)) return '—';
+  return Number(value).toFixed(decimals);
+}
+
+async function pollLatest(){
+  try{
+    const res = await fetch('/api/latest');
+
+    if (!res.ok) throw new Error('bad response');
+
+    const data = await res.json();
+
+    if (data.status === 'offline') {
+      document.getElementById('status-dot').classList.add('offline');
+      document.getElementById('status-text').textContent = 'Sensor node offline';
+    } else {
+      document.getElementById('status-dot').classList.remove('offline');
+      document.getElementById('status-text').textContent = 'Sensor node connected';
+    }
+
+    cardOrder.forEach((key) => {
+      const card = document.querySelector(`#live-cards .card[data-key="${key}"]`);
+      if (!card) return;
+
+      const valueEl = card.querySelector('.value');
+      const unitEl = valueEl.querySelector('.unit');
+      const decimals = key === 'ph' ? 1 : (key === 'turbidity' ? 3 : 2);
+      const formattedVal = fmt(data[key], decimals);
+
+      if (unitEl) {
+        valueEl.childNodes[0].nodeValue = formattedVal;
+      } else {
+        valueEl.textContent = formattedVal;
+      }
+    });
+
+    if (data.last_updated){
+      const d = new Date(data.last_updated * 1000);
+      document.getElementById('last-updated').textContent = 'Last reading: ' + d.toLocaleTimeString();
+    }
+  }catch(err){
+    document.getElementById('status-dot').classList.add('offline');
+    document.getElementById('status-text').textContent = 'Sensor node unreachable — retrying…';
+  }
+}
+
+async function pollHistory(){
+  try{
+    const res = await fetch('/api/history?hours=' + currentHours);
+    if (!res.ok) throw new Error('bad response');
+    const rows = await res.json();
+    lastHistoryRows = rows;
+
+    const labels = rows.map(r => new Date(r.timestamp * 1000).toLocaleTimeString());
+
+    const seriesFor = {
+      tds: rows.map(r => r.tds),
+      turbidity: rows.map(r => r.turbidity),
+      temperature: rows.map(r => r.temperature),
+      ph: rows.map(r => r.ph),
+      nh3: rows.map(r => r.predicted_nh3),
+      do: rows.map(r => r.predicted_do),
+    };
+
+    Object.entries(charts).forEach(([key, chart]) => {
+      chart.data.labels = labels;
+      chart.data.datasets[0].data = seriesFor[key];
+      chart.update('none');
+    });
+
+    if (currentDetailKey){
+      renderDetail(currentDetailKey);
+    }
+  }catch(err){
+  }
+}
+
+const rowFieldFor = { tds: 'tds', turbidity: 'turbidity', temperature: 'temperature', ph: 'ph', nh3: 'predicted_nh3', do: 'predicted_do' };
+let currentDetailKey = null;
+
+function renderDetail(key){
+  const info = paramInfo[key];
+  const field = rowFieldFor[key];
+  const values = lastHistoryRows.map(r => r[field]).filter(v => v !== null && v !== undefined);
+  const labels = lastHistoryRows.map(r => new Date(r.timestamp * 1000).toLocaleTimeString());
+
+  document.getElementById('modal-title').textContent = info.title;
+  document.getElementById('modal-desc').textContent = info.desc;
+
+  if (values.length){
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const avg = values.reduce((sum, v) => sum + v, 0) / values.length;
+    document.getElementById('stat-min').textContent = fmt(min, info.decimals) + (info.unit ? ' ' + info.unit : '');
+    document.getElementById('stat-avg').textContent = fmt(avg, info.decimals) + (info.unit ? ' ' + info.unit : '');
+    document.getElementById('stat-max').textContent = fmt(max, info.decimals) + (info.unit ? ' ' + info.unit : '');
+  } else {
+    ['stat-min', 'stat-avg', 'stat-max'].forEach(id => document.getElementById(id).textContent = '—');
+  }
+
+  detailChart.data.labels = labels;
+  detailChart.data.datasets[0].data = lastHistoryRows.map(r => r[field]);
+  detailChart.update();
+}
+
+function openDetail(key){
+  currentDetailKey = key;
+  renderDetail(key);
+  document.getElementById('modal-overlay').classList.remove('hidden');
+}
+
+function closeDetail(){
+  currentDetailKey = null;
+  document.getElementById('modal-overlay').classList.add('hidden');
+}
+
+document.querySelectorAll('#live-cards .card').forEach(card => {
+  card.addEventListener('click', () => openDetail(card.dataset.key));
+});
+
+document.getElementById('modal-close').addEventListener('click', closeDetail);
+document.getElementById('modal-overlay').addEventListener('click', (e) => {
+  if (e.target.id === 'modal-overlay') closeDetail();
+});
+
+document.querySelectorAll('.range-picker button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.range-picker button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentHours = Number(btn.dataset.hours);
+    pollHistory();
+  });
+});
+
+initCharts();
+pollLatest();
+pollHistory();
+setInterval(pollLatest, LIVE_POLL_MS);
+setInterval(pollHistory, HISTORY_POLL_MS);
+</script>
+
+</body>
+</html>
