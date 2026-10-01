@@ -5,10 +5,10 @@
 #include <DallasTemperature.h>
 #include <Adafruit_ADS1X15.h>
 
-#define ONE_WIRE_BUS 14
+#define ONE_WIRE_BUS 4
+
 OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature tempSensor(&oneWire);
-
 Adafruit_ADS1115 ads;
 
 uint8_t receiverMac[] = {0x8C, 0x94, 0xDF, 0x6B, 0xD2, 0x94};
@@ -25,6 +25,7 @@ esp_now_peer_info_t peerInfo;
 
 const float VOLTAGE_AT_PH7 = 1.953;
 const float VOLTAGE_AT_PH4 = 1.627;
+
 float phSlope;
 float phIntercept;
 
@@ -42,11 +43,13 @@ void setup() {
   int count = tempSensor.getDeviceCount();
   Serial.print("DS18B20 Sensors found: ");
   Serial.println(count);
+
   if (count == 0) {
-  Serial.println("Error: DS18B20 probe not detected! Check 4.7k pull-up resistor on GPIO 14.");}
+    Serial.println("Error: DS18B20 probe not detected! Check 4.7k pull-up resistor on GPIO 14.");
+  }
 
   Wire.begin(21, 22);
-  ads.setGain(GAIN_ONE);
+  ads.setGain(GAIN_TWOTHIRDS);
 
   phSlope = (7.00 - 4.01) / (VOLTAGE_AT_PH7 - VOLTAGE_AT_PH4);
   phIntercept = 7.00 - (phSlope * VOLTAGE_AT_PH7);
@@ -82,25 +85,26 @@ void loop() {
 
   for (int i = 0; i < NUM_SAMPLES; i++) {
     int16_t phRaw = ads.readADC_SingleEnded(2);
-    voltageSum += phRaw * (4.096 / 32768.0);
+    voltageSum += phRaw * (6.144 / 32768.0);
     delay(10);
   }
 
   float phVoltage = voltageSum / NUM_SAMPLES;
-
   float phValue = (phSlope * phVoltage) + phIntercept;
 
   if (phValue < 0.0) phValue = 0.0;
   if (phValue > 14.0) phValue = 14.0;
 
   int16_t tdsRaw = ads.readADC_SingleEnded(0);
-  float tdsvoltage = tdsRaw * (4.096 / 32768.0);
+  float tdsvoltage = tdsRaw * (6.144 / 32768.0);
 
   int16_t turbidityRaw = ads.readADC_SingleEnded(1);
-  float turbidityVoltage = turbidityRaw * (4.096 / 32768.0);
+  float turbidityVoltage = turbidityRaw * (6.144 / 32768.0);
+  float turbidityValue = turbidityVoltage;
 
   tempSensor.requestTemperatures();
   delay(750);
+
   float currentTemp = tempSensor.getTempCByIndex(0);
 
   if (currentTemp == DEVICE_DISCONNECTED_C || currentTemp < -50) {
@@ -109,21 +113,25 @@ void loop() {
 
   float compensationCoefficient = 1.0 + 0.02 * (currentTemp - 25.0);
   float compensationVoltage = tdsvoltage / compensationCoefficient;
-  float tdsPPM = (133.42 * pow(compensationVoltage, 3) - 255.86 * pow(compensationVoltage, 2) + 857.39 * compensationVoltage) * 0.5;
 
-  float turbidityNTU = -1120.4 * pow(turbidityVoltage, 2) + 5742.3 * turbidityVoltage - 4353.8;
-  if (turbidityNTU < 0) turbidityNTU = 0;
+  float tdsPPM =
+    (133.42 * pow(compensationVoltage, 3)
+    - 255.86 * pow(compensationVoltage, 2)
+    + 857.39 * compensationVoltage) * 0.5;
 
   readings.tds = tdsPPM;
-  readings.turbidity = turbidityNTU;
+  readings.turbidity = turbidityValue;
   readings.temperature = currentTemp;
   readings.ph = phValue;
 
-  esp_err_t result = esp_now_send(receiverMac, (uint8_t *) &readings, sizeof(readings));
+  esp_err_t result = esp_now_send(receiverMac, (uint8_t *)&readings, sizeof(readings));
 
   if (result == ESP_OK) {
-    Serial.printf("Sent -> Temp: %.2f C | TDS: %.2f PPM | Turbidity: %.2f NTU | pH: %.2f\n",
-                  readings.temperature, readings.tds, readings.turbidity, readings.ph);
+    Serial.printf("Sent -> Temp: %.2f C | TDS: %.2f PPM | Turbidity: %.4f V | pH: %.2f\n",
+      readings.temperature,
+      readings.tds,
+      readings.turbidity,
+      readings.ph);
   } else {
     Serial.println("Error sending data");
   }

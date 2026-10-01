@@ -19,6 +19,18 @@
     --teal: #6fa8b5;
     --navy: #16324a;
     --shadow: rgba(30, 61, 89, 0.08);
+
+    --good: #2f7d62;
+    --good-bg: #e8f5ef;
+    --good-line: #bfe0d1;
+
+    --warning: #b47719;
+    --warning-bg: #fff4dc;
+    --warning-line: #e7c981;
+
+    --critical: #b74747;
+    --critical-bg: #fbe9e9;
+    --critical-line: #e3b2b2;
   }
   *{ box-sizing: border-box; }
   body{
@@ -32,6 +44,7 @@
   .wrap{ position:relative; max-width:1180px; margin:0 auto; padding:48px 32px 80px; }
 
   header{ position:relative; z-index:1; margin-bottom:56px; }
+  .header-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:24px; flex-wrap:wrap; }
   .kicker{
     font-size:13px; letter-spacing:0.02em; color: var(--ink-soft);
     margin:0 0 10px;
@@ -53,17 +66,18 @@
   .dot{ width:8px; height:8px; border-radius:50%; background:#8fb996; flex-shrink:0; }
   .dot.offline{ background:#c98a7a; }
 
-  section{ position:relative; z-index:1; }
+  section{ position:relative; z-index:1; margin-bottom:60px; }
   .section-head{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:18px; flex-wrap:wrap; gap:10px; }
   .section-head h2{
     font-family:'Fraunces', serif; font-weight:540; font-size:22px; margin:0; color:var(--navy);
   }
+  .section-head .meta{ font-size:12.5px; color:var(--ink-soft); }
 
+  /* ---------- Live reading cards ---------- */
   .cards{
     display:grid;
     grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
     gap:16px;
-    margin-bottom:60px;
   }
   .card{
     background: var(--surface);
@@ -71,16 +85,122 @@
     border-radius:14px;
     padding:20px 20px 18px;
     box-shadow: 0 8px 24px var(--shadow);
+    cursor:pointer;
+    transition: box-shadow 0.15s ease, transform 0.15s ease;
   }
+  .card:hover{ box-shadow: 0 10px 28px rgba(30,61,89,0.14); transform: translateY(-2px); }
   .card .label{ font-size:12.5px; color:var(--ink-soft); margin-bottom:10px; }
   .card .value{
     font-family:'Fraunces', serif; font-weight:560; font-size:30px; color:var(--navy); line-height:1;
+    white-space:nowrap;
   }
   .card .unit{ font-family:'IBM Plex Sans', sans-serif; font-size:14px; font-weight:500; color:var(--ink-soft); margin-left:4px; }
-  .card .note{ font-size:11.5px; color:#8fa9be; margin-top:8px; }
-  .card{ cursor:pointer; transition: box-shadow 0.15s ease, transform 0.15s ease; }
-  .card:hover{ box-shadow: 0 10px 28px rgba(30,61,89,0.14); transform: translateY(-2px); }
+  .card .note{ font-size:11.5px; color:#8fa9be; margin-top:8px; line-height:1.4; }
 
+  /* ---------- Alerts ---------- */
+  .alert-list{ display:flex; flex-direction:column; gap:10px; }
+  .alert-item{
+    display:flex; align-items:flex-start; gap:12px;
+    padding:14px 16px;
+    border-radius:12px;
+    background: var(--warning-bg);
+    border:1px solid var(--warning-line);
+    border-left:3px solid var(--warning);
+  }
+  .alert-item.critical{ background: var(--critical-bg); border-color: var(--critical-line); border-left-color: var(--critical); }
+  .alert-item.warning{ background: var(--warning-bg); border-color: var(--warning-line); border-left-color: var(--warning); }
+  .alert-item.info{ background: var(--surface); border-color: var(--line); border-left-color: var(--ink-soft); }
+  .alert-dot{ width:7px; height:7px; border-radius:50%; background:currentColor; margin-top:6px; flex-shrink:0; }
+  .alert-item.critical .alert-dot{ color: var(--critical); }
+  .alert-item.warning .alert-dot{ color: var(--warning); }
+  .alert-item.info .alert-dot{ color: var(--ink-soft); }
+  .alert-title{ font-size:11.5px; font-weight:600; letter-spacing:0.03em; margin-bottom:3px; }
+  .alert-item.critical .alert-title{ color: var(--critical); }
+  .alert-item.warning .alert-title{ color: var(--warning); }
+  .alert-item.info .alert-title{ color: var(--ink-soft); }
+  .alert-message{ font-size:13px; color: var(--ink); line-height:1.5; }
+  .alert-empty{ color: var(--ink-soft); font-size:14px; padding:18px 4px; }
+
+  /* ---------- Trends ---------- */
+  .range-picker{ display:flex; gap:6px; }
+  .range-picker button{
+    font-family:'IBM Plex Sans', sans-serif; font-size:13px; color:var(--ink-soft);
+    background:var(--surface); border:1px solid var(--line); border-radius:8px;
+    padding:6px 14px; cursor:pointer;
+  }
+  .range-picker button.active{ background:var(--navy); color:#eaf4f8; border-color:var(--navy); }
+
+  .charts{
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap:20px;
+  }
+  .chart-card{
+    background: var(--surface);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:20px 22px 14px;
+    box-shadow: 0 8px 24px var(--shadow);
+  }
+  .chart-card h3{
+    font-family:'IBM Plex Sans', sans-serif; font-weight:600; font-size:14px; margin:0 0 12px; color:var(--ink);
+  }
+  .chart-card canvas{ max-height:180px; }
+
+  /* ---------- Potability ---------- */
+  .potability-box{
+    background: linear-gradient(135deg, #ffffff 0%, #f3f9fc 100%);
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:26px 28px;
+    box-shadow: 0 8px 24px var(--shadow);
+  }
+  .potability-top{
+    display:flex; justify-content:space-between; align-items:center; gap:20px;
+    margin-bottom:22px; flex-wrap:wrap;
+  }
+  .potability-heading{ display:flex; align-items:center; gap:13px; }
+  .potability-icon{
+    width:38px; height:38px; border-radius:10px;
+    background: var(--bg-deep); color: var(--navy);
+    display:flex; align-items:center; justify-content:center; font-size:18px;
+    flex-shrink:0;
+  }
+  .potability-title{
+    font-family:'Fraunces', serif; font-weight:560; font-size:21px; margin:0; color:var(--navy);
+  }
+  .potability-subtitle{ margin-top:4px; color:var(--ink-soft); font-size:12.5px; max-width:420px; line-height:1.5; }
+  .screening-badge{
+    padding:8px 16px; border-radius:20px;
+    background: var(--bg-deep); color: var(--navy);
+    border:1px solid #c1dce8;
+    font-size:12.5px; font-weight:600; white-space:nowrap;
+  }
+  .screening-badge.warning{ background:#fff4dc; color:#8a5c13; border-color:var(--warning-line); }
+  .screening-badge.good{ background: var(--good-bg); color: var(--good); border-color: var(--good-line); }
+
+  .potability-grid{
+    display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:14px;
+  }
+  .potability-card{
+    background: var(--surface); border:1px solid var(--line); border-radius:12px; padding:16px;
+  }
+  .potability-card-label{ font-size:12px; color:var(--ink-soft); margin-bottom:8px; }
+  .potability-card-value{ font-family:'Fraunces', serif; font-size:23px; line-height:1; margin-bottom:8px; color:var(--navy); }
+  .potability-reference{ font-size:11.5px; color:var(--ink-soft); margin-bottom:9px; }
+  .screening-status{ display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:600; }
+  .screening-status.good{ color: var(--good); }
+  .screening-status.warning{ color: #8a5c13; }
+  .screening-status.estimated{ color: var(--ink-soft); font-weight:500; }
+  .status-small-dot{ width:6px; height:6px; border-radius:50%; background:currentColor; }
+  .potability-note{
+    margin-top:18px; padding:13px 16px;
+    background: var(--bg); border:1px solid var(--line); border-radius:10px;
+    color: var(--ink-soft); font-size:12px; line-height:1.6;
+  }
+  .potability-note strong{ color: var(--ink); }
+
+  /* ---------- Modal ---------- */
   .modal-overlay{
     position:fixed; inset:0; background:rgba(22,50,74,0.45);
     display:flex; align-items:center; justify-content:center;
@@ -110,33 +230,8 @@
   .modal-stats .stat .stat-value{ font-family:'Fraunces', serif; font-weight:560; font-size:19px; color:var(--navy); }
   #chart-detail{ max-height:260px; }
 
-  .range-picker{ display:flex; gap:6px; }
-  .range-picker button{
-    font-family:'IBM Plex Sans', sans-serif; font-size:13px; color:var(--ink-soft);
-    background:var(--surface); border:1px solid var(--line); border-radius:8px;
-    padding:6px 14px; cursor:pointer;
-  }
-  .range-picker button.active{ background:var(--navy); color:#eaf4f8; border-color:var(--navy); }
-
-  .charts{
-    display:grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-    gap:20px;
-  }
-  .chart-card{
-    background: var(--surface);
-    border:1px solid var(--line);
-    border-radius:14px;
-    padding:20px 22px 14px;
-    box-shadow: 0 8px 24px var(--shadow);
-  }
-  .chart-card h3{
-    font-family:'IBM Plex Sans', sans-serif; font-weight:600; font-size:14px; margin:0 0 12px; color:var(--ink);
-  }
-  .chart-card canvas{ max-height:180px; }
-
   footer{
-    position:relative; z-index:1; margin-top:70px; padding-top:20px; border-top:1px solid var(--line);
+    position:relative; z-index:1; margin-top:10px; padding-top:20px; border-top:1px solid var(--line);
     font-size:12.5px; color:var(--ink-soft); display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;
   }
 
@@ -163,9 +258,13 @@
 <div class="wrap">
 
   <header>
-    <p class="kicker">Chitrapuzha River, Kakkanad</p>
-    <h1>Water quality monitor</h1>
-    <p class="sub">Live readings from the riverbank sensor node, with ML-forecasted ammoniacal nitrogen and dissolved oxygen.</p>
+    <div class="header-top">
+      <div>
+        <p class="kicker">Chitrapuzha River, Kakkanad</p>
+        <h1>Water quality monitor</h1>
+        <p class="sub">Live readings from the riverbank sensor node, with ML-forecasted ammoniacal nitrogen and dissolved oxygen.</p>
+      </div>
+    </div>
     <div class="status-row">
       <span class="dot" id="status-dot"></span>
       <span id="status-text">Connecting to sensor node…</span>
@@ -173,14 +272,21 @@
   </header>
 
   <section>
-    <div class="section-head"><h2>Current readings</h2></div>
+    <div class="section-head"><h2>Current readings</h2><span class="meta" id="last-updated">—</span></div>
     <div class="cards" id="live-cards">
       <div class="card" data-key="tds"><div class="label">TDS</div><div class="value">—<span class="unit">ppm</span></div></div>
-      <div class="card" data-key="turbidity"><div class="label">Turbidity</div><div class="value">—<span class="unit">V</span></div><div class="note">raw voltage, uncalibrated</div></div>
+      <div class="card" data-key="turbidity"><div class="label">Turbidity</div><div class="value">—<span class="unit">NTU</span></div><div class="note">estimated from sensor voltage</div></div>
       <div class="card" data-key="temperature"><div class="label">Temperature</div><div class="value">—<span class="unit">°C</span></div></div>
       <div class="card" data-key="ph"><div class="label">pH</div><div class="value">—</div></div>
       <div class="card" data-key="nh3"><div class="label">Predicted NH₃-N</div><div class="value">—<span class="unit">mg/L</span></div></div>
-      <div class="card" data-key="do"><div class="label">Predicted DO</div><div class="value">—<span class="unit">%</span></div></div>
+      <div class="card" data-key="do"><div class="label">Predicted DO</div><div class="value">—<span class="unit">mg/L</span></div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><h2>Alerts</h2><span class="meta" id="alert-count"></span></div>
+    <div class="alert-list" id="active-alerts">
+      <div class="alert-empty">No active alerts</div>
     </div>
   </section>
 
@@ -195,11 +301,61 @@
     </div>
     <div class="charts">
       <div class="chart-card"><h3>TDS (ppm)</h3><canvas id="chart-tds"></canvas></div>
-      <div class="chart-card"><h3>Turbidity (V)</h3><canvas id="chart-turbidity"></canvas></div>
+      <div class="chart-card"><h3>Turbidity (NTU)</h3><canvas id="chart-turbidity"></canvas></div>
       <div class="chart-card"><h3>Temperature (°C)</h3><canvas id="chart-temperature"></canvas></div>
       <div class="chart-card"><h3>pH</h3><canvas id="chart-ph"></canvas></div>
       <div class="chart-card"><h3>Predicted NH₃-N (mg/L)</h3><canvas id="chart-nh3"></canvas></div>
-      <div class="chart-card"><h3>Predicted DO (%)</h3><canvas id="chart-do"></canvas></div>
+      <div class="chart-card"><h3>Predicted DO (mg/L)</h3><canvas id="chart-do"></canvas></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><h2>Potability</h2><span class="meta">Selected drinking-water criteria</span></div>
+    <div class="potability-box">
+      <div class="potability-top">
+        <div class="potability-heading">
+          <div class="potability-icon">◌</div>
+          <div>
+            <h3 class="potability-title">Potability screening</h3>
+            <div class="potability-subtitle">Comparison of current readings with selected drinking-water reference values</div>
+          </div>
+        </div>
+        <div id="potability-badge" class="screening-badge">Screening</div>
+      </div>
+
+      <div class="potability-grid">
+        <div class="potability-card">
+          <div class="potability-card-label">pH</div>
+          <div class="potability-card-value"><span id="pot-ph">—</span></div>
+          <div class="potability-reference">Reference: 6.5 – 8.5</div>
+          <div id="pot-ph-status"><span class="screening-status estimated"><span class="status-small-dot"></span>Waiting</span></div>
+        </div>
+        <div class="potability-card">
+          <div class="potability-card-label">TDS</div>
+          <div class="potability-card-value"><span id="pot-tds">—</span></div>
+          <div class="potability-reference">Reference: ≤ 500 mg/L</div>
+          <div id="pot-tds-status"><span class="screening-status estimated"><span class="status-small-dot"></span>Waiting</span></div>
+        </div>
+        <div class="potability-card">
+          <div class="potability-card-label">Turbidity</div>
+          <div class="potability-card-value"><span id="pot-turbidity">—</span></div>
+          <div class="potability-reference">Reference: ≤ 1 NTU</div>
+          <div id="pot-turbidity-status"><span class="screening-status estimated"><span class="status-small-dot"></span>Waiting</span></div>
+        </div>
+        <div class="potability-card">
+          <div class="potability-card-label">Predicted NH₃-N</div>
+          <div class="potability-card-value"><span id="pot-nh3">—</span></div>
+          <div class="potability-reference">Reference: ≤ 0.5 mg/L</div>
+          <div id="pot-nh3-status"><span class="screening-status estimated"><span class="status-small-dot"></span>Waiting</span></div>
+        </div>
+      </div>
+
+      <div class="potability-note">
+        <strong>Screening only:</strong> These values represent a limited assessment using the parameters currently
+        available to the monitoring system. They do not certify that the river water is safe for drinking.
+        Turbidity is an estimated value based on the current provisional sensor calibration, while NH₃-N is an
+        ML prediction.
+      </div>
     </div>
   </section>
 
@@ -221,7 +377,7 @@
 
   <footer>
     <span>Intelligent Sensor-Driven Modelling of Climate-Induced River Water Quality Impacts — RSET Campus</span>
-    <span id="last-updated">—</span>
+    <span>Chitrapuzha River Water Quality Monitor</span>
   </footer>
 
 </div>
@@ -229,37 +385,58 @@
 <script>
 const LIVE_POLL_MS = 4000;
 const HISTORY_POLL_MS = 30000;
+const ALERTS_POLL_MS = 5000;
 let currentHours = 24;
 
 const cardOrder = ['tds', 'turbidity', 'temperature', 'ph', 'nh3', 'do'];
 
 const chartMeta = {
-  tds:         { canvas: 'chart-tds',         color: '#1e3d59' },
-  turbidity:   { canvas: 'chart-turbidity',   color: '#3d6d99' },
-  temperature: { canvas: 'chart-temperature', color: '#6fa8b5' },
-  ph:          { canvas: 'chart-ph',          color: '#7fb2c5' },
-  nh3:         { canvas: 'chart-nh3',         color: '#4c7fa3' },
-  do:          { canvas: 'chart-do',          color: '#2a5674' },
+  tds:         { canvas: 'chart-tds',         color: '#1e3d59', field: 'tds' },
+  turbidity:   { canvas: 'chart-turbidity',   color: '#3d6d99', field: 'turbidity' },
+  temperature: { canvas: 'chart-temperature', color: '#6fa8b5', field: 'temperature' },
+  ph:          { canvas: 'chart-ph',          color: '#7fb2c5', field: 'ph' },
+  nh3:         { canvas: 'chart-nh3',         color: '#4c7fa3', field: 'predicted_nh3' },
+  do:          { canvas: 'chart-do',          color: '#2a5674', field: 'predicted_do' },
 };
 const charts = {};
 let detailChart = null;
 let lastHistoryRows = [];
+let currentDetailKey = null;
 
 const paramInfo = {
   tds:         { title: 'TDS', unit: 'ppm', decimals: 2,
-                 desc: 'Total dissolved solids: concentration of dissolved minerals and salts in the water.' },
-  turbidity:   { title: 'Turbidity', unit: 'V', decimals: 3,
-                 desc: 'Raw sensor voltage from the optical turbidity probe. Higher voltage means clearer water.' },
+                 desc: 'Total dissolved solids measured by the sensor. TDS provides an indication of the concentration of dissolved substances in the water.' },
+  turbidity:   { title: 'Turbidity', unit: 'NTU', decimals: 2,
+                 desc: 'Estimated turbidity from the sensor voltage using the current provisional calibration. The displayed value should be treated as an estimate rather than a laboratory-certified turbidity measurement.' },
   temperature: { title: 'Temperature', unit: '\u00b0C', decimals: 2,
                  desc: 'Water temperature at the sensor node. Strongly influences dissolved oxygen \u2014 colder water holds more oxygen.' },
-  ph:          { title: 'pH', unit: '', decimals: 1,
-                 desc: 'Acidity/alkalinity of the water. The Chitrapuzha\u2019s typical range is 6.2\u20138.5.' },
-  nh3:         { title: 'Predicted NH\u2083-N', unit: 'mg/L', decimals: 2,
-                 desc: 'Ammoniacal nitrogen, forecasted by the RandomForest model \u2014 driven mainly by turbidity.' },
-  do:          { title: 'Predicted DO', unit: '%', decimals: 2,
-                 desc: 'Dissolved oxygen saturation, forecasted by the RandomForest model \u2014 driven mainly by temperature and pH.' },
+  ph:          { title: 'pH', unit: '', decimals: 2,
+                 desc: 'pH indicates how acidic or alkaline the water is.' },
+  nh3:         { title: 'Predicted NH\u2083-N', unit: 'mg/L', decimals: 3,
+                 desc: 'Ammonia-nitrogen concentration predicted by the Random Forest model using the measured water-quality parameters.' },
+  do:          { title: 'Predicted Dissolved Oxygen', unit: 'mg/L', decimals: 2,
+                 desc: 'Dissolved oxygen concentration predicted by the Random Forest model using the measured water-quality parameters.' },
 };
 
+const rowFieldFor = { tds: 'tds', turbidity: 'turbidity', temperature: 'temperature', ph: 'ph', nh3: 'predicted_nh3', do: 'predicted_do' };
+
+function fmt(value, decimals = 2){
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return '—';
+  return Number(value).toFixed(decimals);
+}
+
+function setText(id, value){
+  const el = document.getElementById(id);
+  if (el) el.textContent = value;
+}
+
+function setStatus(elementId, status, text){
+  const el = document.getElementById(elementId);
+  if (!el) return;
+  el.innerHTML = '<span class="screening-status ' + status + '"><span class="status-small-dot"></span>' + text + '</span>';
+}
+
+/* ---------- Charts ---------- */
 function initCharts(){
   Object.entries(chartMeta).forEach(([key, meta]) => {
     const ctx = document.getElementById(meta.canvas).getContext('2d');
@@ -310,36 +487,23 @@ function initCharts(){
   });
 }
 
-function fmt(value, decimals = 2){
-  if (value === null || value === undefined || Number.isNaN(value)) return '—';
-  return Number(value).toFixed(decimals);
-}
 
 async function pollLatest(){
   try{
     const res = await fetch('/api/latest');
-
     if (!res.ok) throw new Error('bad response');
-
     const data = await res.json();
 
-    if (data.status === 'offline') {
-      document.getElementById('status-dot').classList.add('offline');
-      document.getElementById('status-text').textContent = 'Sensor node offline';
-    } else {
-      document.getElementById('status-dot').classList.remove('offline');
-      document.getElementById('status-text').textContent = 'Sensor node connected';
-    }
+    document.getElementById('status-dot').classList.remove('offline');
+    document.getElementById('status-text').textContent = 'Sensor node connected';
 
     cardOrder.forEach((key) => {
       const card = document.querySelector(`#live-cards .card[data-key="${key}"]`);
       if (!card) return;
-
       const valueEl = card.querySelector('.value');
       const unitEl = valueEl.querySelector('.unit');
-      const decimals = key === 'ph' ? 1 : (key === 'turbidity' ? 3 : 2);
-      const formattedVal = fmt(data[key], decimals);
-
+      const decimals = paramInfo[key].decimals;
+      const formattedVal = fmt(data[key === 'nh3' ? 'predicted_nh3' : (key === 'do' ? 'predicted_do' : key)], decimals);
       if (unitEl) {
         valueEl.childNodes[0].nodeValue = formattedVal;
       } else {
@@ -347,16 +511,74 @@ async function pollLatest(){
       }
     });
 
+    updatePotability(data);
+
     if (data.last_updated){
-      const d = new Date(data.last_updated * 1000);
-      document.getElementById('last-updated').textContent = 'Last reading: ' + d.toLocaleTimeString();
+      const d = new Date(data.last_updated);
+      if (!isNaN(d.getTime())){
+        document.getElementById('last-updated').textContent = 'Updated ' + d.toLocaleTimeString();
+      } else {
+        document.getElementById('last-updated').textContent = 'Latest sensor reading';
+      }
+    } else {
+      document.getElementById('last-updated').textContent = 'Latest sensor reading';
     }
   }catch(err){
     document.getElementById('status-dot').classList.add('offline');
-    document.getElementById('status-text').textContent = 'Sensor node unreachable — retrying…';
+    document.getElementById('status-text').textContent = 'Sensor offline';
   }
 }
 
+/* ---------- Potability ---------- */
+function updatePotability(data){
+  const ph = Number(data.ph);
+  const tds = Number(data.tds);
+  const turbidity = Number(data.turbidity);
+  const nh3 = Number(data.predicted_nh3);
+
+  setText('pot-ph', isNaN(ph) ? '—' : fmt(ph, 2));
+  setText('pot-tds', isNaN(tds) ? '—' : fmt(tds, 1) + ' mg/L');
+  setText('pot-turbidity', isNaN(turbidity) ? '—' : fmt(turbidity, 2) + ' NTU');
+  setText('pot-nh3', isNaN(nh3) ? '—' : fmt(nh3, 3) + ' mg/L');
+
+  let issues = 0;
+  let available = 0;
+
+  if (!isNaN(ph)){
+    available++;
+    if (ph >= 6.5 && ph <= 8.5) setStatus('pot-ph-status', 'good', 'Within reference');
+    else { issues++; setStatus('pot-ph-status', 'warning', 'Outside reference'); }
+  }
+  if (!isNaN(tds)){
+    available++;
+    if (tds <= 500) setStatus('pot-tds-status', 'good', 'Within reference');
+    else { issues++; setStatus('pot-tds-status', 'warning', 'Above reference'); }
+  }
+  if (!isNaN(turbidity)){
+    available++;
+    if (turbidity <= 1) setStatus('pot-turbidity-status', 'good', 'Within estimate');
+    else { issues++; setStatus('pot-turbidity-status', 'warning', 'Above reference'); }
+  }
+  if (!isNaN(nh3)){
+    available++;
+    if (nh3 <= 0.5) setStatus('pot-nh3-status', 'good', 'Within reference');
+    else { issues++; setStatus('pot-nh3-status', 'warning', 'Above reference'); }
+  }
+
+  const badge = document.getElementById('potability-badge');
+  if (available === 0){
+    badge.textContent = 'Waiting for data';
+    badge.className = 'screening-badge';
+  } else if (issues > 0){
+    badge.textContent = 'Review required';
+    badge.className = 'screening-badge warning';
+  } else {
+    badge.textContent = 'Within selected criteria';
+    badge.className = 'screening-badge good';
+  }
+}
+
+/* ---------- Trends / history ---------- */
 async function pollHistory(){
   try{
     const res = await fetch('/api/history?hours=' + currentHours);
@@ -364,20 +586,15 @@ async function pollHistory(){
     const rows = await res.json();
     lastHistoryRows = rows;
 
-    const labels = rows.map(r => new Date(r.timestamp * 1000).toLocaleTimeString());
-
-    const seriesFor = {
-      tds: rows.map(r => r.tds),
-      turbidity: rows.map(r => r.turbidity),
-      temperature: rows.map(r => r.temperature),
-      ph: rows.map(r => r.ph),
-      nh3: rows.map(r => r.predicted_nh3),
-      do: rows.map(r => r.predicted_do),
-    };
+    const labels = rows.map(r => {
+      if (!r.timestamp) return '';
+      const d = new Date(r.timestamp);
+      return isNaN(d.getTime()) ? '' : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    });
 
     Object.entries(charts).forEach(([key, chart]) => {
       chart.data.labels = labels;
-      chart.data.datasets[0].data = seriesFor[key];
+      chart.data.datasets[0].data = rows.map(r => Number(r[chartMeta[key].field]));
       chart.update('none');
     });
 
@@ -385,17 +602,20 @@ async function pollHistory(){
       renderDetail(currentDetailKey);
     }
   }catch(err){
+    /* keep last known charts on failure */
   }
 }
 
-const rowFieldFor = { tds: 'tds', turbidity: 'turbidity', temperature: 'temperature', ph: 'ph', nh3: 'predicted_nh3', do: 'predicted_do' };
-let currentDetailKey = null;
-
+/* ---------- Modal detail ---------- */
 function renderDetail(key){
   const info = paramInfo[key];
   const field = rowFieldFor[key];
-  const values = lastHistoryRows.map(r => r[field]).filter(v => v !== null && v !== undefined);
-  const labels = lastHistoryRows.map(r => new Date(r.timestamp * 1000).toLocaleTimeString());
+  const values = lastHistoryRows.map(r => Number(r[field])).filter(v => !isNaN(v));
+  const labels = lastHistoryRows.map(r => {
+    if (!r.timestamp) return '';
+    const d = new Date(r.timestamp);
+    return isNaN(d.getTime()) ? '' : d.toLocaleTimeString();
+  });
 
   document.getElementById('modal-title').textContent = info.title;
   document.getElementById('modal-desc').textContent = info.desc;
@@ -412,7 +632,7 @@ function renderDetail(key){
   }
 
   detailChart.data.labels = labels;
-  detailChart.data.datasets[0].data = lastHistoryRows.map(r => r[field]);
+  detailChart.data.datasets[0].data = lastHistoryRows.map(r => Number(r[field]));
   detailChart.update();
 }
 
@@ -430,10 +650,12 @@ function closeDetail(){
 document.querySelectorAll('#live-cards .card').forEach(card => {
   card.addEventListener('click', () => openDetail(card.dataset.key));
 });
-
 document.getElementById('modal-close').addEventListener('click', closeDetail);
 document.getElementById('modal-overlay').addEventListener('click', (e) => {
   if (e.target.id === 'modal-overlay') closeDetail();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeDetail();
 });
 
 document.querySelectorAll('.range-picker button').forEach(btn => {
@@ -445,11 +667,67 @@ document.querySelectorAll('.range-picker button').forEach(btn => {
   });
 });
 
+/* ---------- Alerts ---------- */
+function alertClass(level){
+  if (!level) return 'info';
+  const value = String(level).toLowerCase();
+  if (value.includes('critical')) return 'critical';
+  if (value.includes('warning')) return 'warning';
+  return 'info';
+}
+
+function renderAlerts(containerId, alerts){
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  if (!Array.isArray(alerts) || alerts.length === 0){
+    container.innerHTML = '<div class="alert-empty">No active alerts</div>';
+    const count = document.getElementById('alert-count');
+    if (count) count.textContent = '';
+    return;
+  }
+
+  container.innerHTML = alerts.map(alert => {
+    const level = alert.level || 'info';
+    const parameter = alert.parameter || '';
+    const message = alert.message || '';
+    const value = (alert.value !== undefined && alert.value !== null) ? ' · ' + alert.value : '';
+    const time = alert.opened_at || alert.timestamp || '';
+    return `
+      <div class="alert-item ${alertClass(level)}">
+        <span class="alert-dot"></span>
+        <div>
+          <div class="alert-title">${String(level).toUpperCase()}</div>
+          <div class="alert-message">${parameter}: ${message}${value}${time ? ' · ' + time : ''}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  const count = document.getElementById('alert-count');
+  if (count) count.textContent = alerts.length + (alerts.length === 1 ? ' active alert' : ' active alerts');
+}
+
+async function pollAlerts(){
+  try{
+    const res = await fetch('/api/alerts');
+    if (res.ok){
+      const active = await res.json();
+      renderAlerts('active-alerts', active);
+    }
+  }catch(err){
+    /* leave last known alerts on screen */
+  }
+}
+
 initCharts();
 pollLatest();
 pollHistory();
+pollAlerts();
+
 setInterval(pollLatest, LIVE_POLL_MS);
 setInterval(pollHistory, HISTORY_POLL_MS);
+setInterval(pollAlerts, ALERTS_POLL_MS);
 </script>
 
 </body>
