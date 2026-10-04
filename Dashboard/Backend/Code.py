@@ -570,9 +570,9 @@ app.mount("/", StaticFiles(directory="../Frontend", html=True), name="static")
 def serial_reader_loop():
     while True:
         try:
-            ser = serial.Serial("COM3", 115200, timeout=2)
+            ser = serial.Serial("/dev/ttyUSB0", 115200, timeout=2)
 
-            print("Connected to COM3 successfully.")
+            print("Connected to /dev/ttyUSB0 successfully.")
 
             while True:
                 line = ser.readline().decode("utf-8", errors="ignore")
@@ -614,7 +614,7 @@ def serial_reader_loop():
                 )
 
         except serial.SerialException as e:
-            print(f"Serial port COM3 error: {e}. " f"Retrying in 5 seconds...")
+            print(f"Serial port error: {e}. " f"Retrying in 5 seconds...")
             time.sleep(5)
 
         except Exception as e:
@@ -632,4 +632,4 @@ watchdog_thread.start()
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="127.0.0.1", port=8000, reload=False)
+    uvicorn.run(app, host="0.0.0.0", port=8000, reload=False)
