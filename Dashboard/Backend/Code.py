@@ -76,6 +76,12 @@ OFFLINE_AFTER_S = 15
 TURBIDITY_WINDOW = 5
 turbidity_voltage_history = deque(maxlen=TURBIDITY_WINDOW)
 
+# Preliminary 3-point turbidity calibration (distilled water, 250 NTU, ~333 NTU),
+# taken in the same container at the same sensor depth.
+# Voltages ascending, NTU descending: voltage falls as turbidity rises.
+CAL_VOLTS = [1.55, 1.75, 1.96]
+CAL_NTU = [333.0, 250.0, 0.0]
+
 SEVERITY_ORDER = {"critical": 0, "fault": 1, "warning": 2}
 
 alert_lock = threading.RLock()
@@ -244,7 +250,15 @@ def evaluate_reading(readings):
 
             history.append(value)
 
-            is_flat = len(history) == FLATLINE_N and len(set(history)) == 1
+            # Calibrated turbidity is clamped at the ends of the calibrated range,
+            # so a constant 0 NTU (clear) or max NTU (above range) is not a fault.
+            at_clamp = param == "turbidity" and value in (0.0, CAL_NTU[0])
+
+            is_flat = (
+                len(history) == FLATLINE_N
+                and len(set(history)) == 1
+                and not at_clamp
+            )
 
             key = f"{param}_flatline"
             action = _debounce(key, is_flat)
@@ -346,7 +360,8 @@ def read_values(line):
 
         temperatureText = parts[0].split(":")[1].replace("°C", "").strip()
         tdsText = parts[1].split(":")[1].replace("PPM", "").strip()
-        turbidityText = parts[2].split(":")[1].replace("NTU", "").strip()
+        # The receiver labels this field "NTU" but it is the raw sensor voltage in volts.
+        turbidityText = parts[2].split(":")[1].replace("NTU", "").replace("V", "").strip()
         phText = parts[3].split(":")[1].strip()
 
         temperatureValue = float(temperatureText)
@@ -368,8 +383,23 @@ def smooth_turbidity_voltage(voltage):
 
 
 def voltage_to_ntu(voltage):
-    ntu = 295.28 * (voltage - 1.27)
-    return max(0.0, ntu)
+    # At or above the clear-water voltage -> 0 NTU
+    if voltage >= CAL_VOLTS[-1]:
+        return 0.0
+
+    # At or below the lowest calibrated voltage -> clamp to top of calibrated range
+    if voltage <= CAL_VOLTS[0]:
+        return CAL_NTU[0]
+
+    # Piecewise-linear interpolation between calibration points
+    for i in range(len(CAL_VOLTS) - 1):
+        v0, v1 = CAL_VOLTS[i], CAL_VOLTS[i + 1]
+
+        if v0 <= voltage <= v1:
+            n0, n1 = CAL_NTU[i], CAL_NTU[i + 1]
+            return n0 + (voltage - v0) * (n1 - n0) / (v1 - v0)
+
+    return 0.0
 
 
 def get_prediction(tds, turbidity, ph, temperature):
@@ -383,7 +413,7 @@ def get_prediction(tds, turbidity, ph, temperature):
             "temperature": temperature,
         }
 
-        response = requests.post(url, json=predictions, timeout=10)
+        response = requests.post(url, json=predictions, timeout=90)
 
         response.raise_for_status()
 
